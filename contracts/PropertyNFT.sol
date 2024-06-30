@@ -5,10 +5,13 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@coinbase/verifications/abstracts/AttestationAccessControl.sol";
+import {Attestation, AttestationVerifier} from "@coinbase/verifications/libraries/AttestationVerifier.sol";
+
 import "./FrodoEstateVault.sol";
 import "./PropertyOracle.sol";
 
-contract FPropertyNFT is ERC721URIStorage, AccessControl {
+contract FPropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessControl {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
@@ -27,6 +30,7 @@ contract FPropertyNFT is ERC721URIStorage, AccessControl {
     mapping(address => bool) public approvedPartners;
 
     address public usdcToken;
+    bytes32 public schemaUid = 0x2f34a2ffe5f87b2f45fbc7c784896b768d77261e2f24f77341ae43751c765a69; //account schemaUId for account verification
 
     event PropertyMinted(uint256 indexed tokenId, address indexed partner, PropertyUsage usage, address oracle, address vault);
     event PropertyUsageUpdated(uint256 indexed tokenId, PropertyUsage newUsage);
@@ -40,6 +44,7 @@ contract FPropertyNFT is ERC721URIStorage, AccessControl {
     }
 
     function approvePartner(address partner) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _verifyAttestation(partner);
         approvedPartners[partner] = true;
         grantRole(PARTNER_ROLE, partner);
         emit PartnerApproved(partner);
@@ -61,6 +66,7 @@ contract FPropertyNFT is ERC721URIStorage, AccessControl {
 
         _safeMint(msg.sender, newTokenId);
         _setTokenURI(newTokenId, tokenURI);
+        _verifyAttestation(msg.sender);
 
         // Create Oracle
         PropertyOracle newOracle = new PropertyOracle();
@@ -70,6 +76,8 @@ contract FPropertyNFT is ERC721URIStorage, AccessControl {
         // Create Vault
         FrodoEstateVault newVault = new FrodoEstateVault(address(this), address(newOracle), usdcToken, msg.sender);
         newOracle.updateValue(address(newVault), initialValue);
+        require(_isApprovedOrOwner(address(newVault), newTokenId),"Approve the vault contract before minting Property");
+        newVault.lockNFT(newTokenId);
 
         properties[newTokenId] = PropertyDetails({
             usage: usage,
@@ -96,5 +104,10 @@ contract FPropertyNFT is ERC721URIStorage, AccessControl {
     // Override required functions
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721URIStorage, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
+    }
+
+    function _verifyAttestation(address user) internal {
+        Attestation memory attestation = _getAttestation(user, schemaUid);
+        AttestationVerifier.verifyAttestation(attestation,user, schemaUid);
     }
 }

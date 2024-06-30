@@ -1,7 +1,6 @@
 import { defaultChains as chains, chain } from "wagmi";
-import { InjectedConnector } from "wagmi/connectors/injected";
-import { WalletConnectConnector } from "wagmi/connectors/walletConnect";
-import { WalletLinkConnector } from "wagmi/connectors/walletLink";
+import { coinbaseWallet, InjectedConnector, WalletConnectConnector , WalletLinkConnector} from 'wagmi/connectors';
+
 import { infuraId, appName, defaultChain } from "./constants";
 
 // Set up Wallet connectors
@@ -28,6 +27,7 @@ const connectors = ({ chainId }: { chainId?: number }) => {
         jsonRpcUrl: `${rpcUrl}/${infuraId}`,
       },
     }),
+    coinbaseWallet({ appName: 'Frodo Estate', preference: 'smartWalletOnly' }),
   ];
 };
 

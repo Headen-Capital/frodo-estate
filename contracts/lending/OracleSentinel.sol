@@ -8,20 +8,20 @@ interface IPriceOracle {
 }
 
 contract CollateralOracleSentinel is Ownable {
-    IPriceOracle public priceOracle;
     mapping(address => bool) public registeredVaults;
+    mapping(address => IPriceOracle) public priceOracles;
     mapping(address => mapping(address => uint256)) public userCollateral;
     address[] vaults;
 
     event VaultRegistered(address vault);
     event CollateralUpdated(address user, address vault, uint256 amount);
 
-    constructor(address _priceOracle) {
-        priceOracle = IPriceOracle(_priceOracle);
-    }
+    constructor() {}
 
-    function registerVault(address _vault) external onlyOwner {
+    function registerVault(address _vault, address _priceOracle) external onlyOwner {
         registeredVaults[_vault] = true;
+        priceOracles[_vault] = IPriceOracle(_priceOracle);
+        vaults.push(_vault);
         emit VaultRegistered(_vault);
     }
 
@@ -35,7 +35,8 @@ contract CollateralOracleSentinel is Ownable {
     function getCollateralValue(address _user) external view returns (uint256) {
         uint256 totalValue = 0;
         for (uint i = 0; i < vaults.length; i++) {
-            address vault = registeredVaults[vaults[i]];
+            address vault = vaults[i];
+            IPriceOracle priceOracle = priceOracles[vault];
             uint256 amount = userCollateral[_user][vault];
             uint256 price = priceOracle.getPrice(vault);
             totalValue += amount * price;
@@ -43,7 +44,12 @@ contract CollateralOracleSentinel is Ownable {
         return totalValue;
     }
 
-    function setPriceOracle(address _newOracle) external onlyOwner {
-        priceOracle = IPriceOracle(_newOracle);
+    function setPriceOracle(address _vault, address _newOracle) external onlyOwner {
+        priceOracles[_vault] = IPriceOracle(_newOracle);
+    }
+
+     function getPrice(address _vault) external view returns (uint256) {
+        IPriceOracle priceOracle = priceOracles[_vault];
+        return priceOracle.getPrice(_vault);
     }
 }

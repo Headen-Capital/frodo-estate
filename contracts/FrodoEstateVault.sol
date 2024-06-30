@@ -22,7 +22,7 @@ contract FrodoEstateVault is ERC20, ReentrancyGuard {
     event TokensSold(address indexed seller, uint256 amount);
     event InvestmentClosed(uint256 totalValue);
 
-    constructor(address _nftContract, address _oracle, address _usdtToken, address _partner) ERC20("Frodo Estate Token", "FET") {
+    constructor(address _nftContract, address _oracle, address _usdtToken, address _partner) ERC20("Frodo Estate Vault Token", "FET") {
         nftContract = IERC721(_nftContract);
         oracle = PropertyOracle(_oracle);
         usdtToken = IERC20(_usdtToken);
@@ -87,5 +87,9 @@ contract FrodoEstateVault is ERC20, ReentrancyGuard {
 
     function getTokenValue() public view returns (uint256) {
         return oracle.getValue(address(this)) / TOTAL_SHARES;
+    }
+
+    function getTokenPrice(uint256 _amount) public view returns (uint256) {
+        return _amount * oracle.getValue(address(this)) / TOTAL_SHARES;
     }
 }

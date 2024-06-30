@@ -16,7 +16,7 @@ contract PropertyOracle is AccessControl {
         _setupRole(UPDATER_ROLE, msg.sender);
     }
 
-    function updateValue(address vault, uint256 _value) external onlyRole(UPDATER_ROLE) {
+    function updateValue(address vault, uint256 _value) external onlyRole(UPDATER_ROLE) { // in usd
         values = _value;
         timestamps = block.timestamp;
         emit ValueUpdated(vault, _value, block.timestamp);

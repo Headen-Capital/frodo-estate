@@ -21,6 +21,7 @@ contract LendingPool is ReentrancyGuard, Ownable {
     LPToken public lpToken;
     DebtToken public debtToken;
     PoolConfigurator public poolConfigurator;
+    address[] vaults;
 
     struct VaultConfig {
         uint256 collateralFactor;
@@ -177,12 +178,9 @@ contract LendingPool is ReentrancyGuard, Ownable {
         require(!checkHealth(_user), "User position is healthy");
 
         UserAccount storage account = userAccounts[_user];
-        uint256 userDebt = getBorrowedPlusInterest(_user);
-        uint256 maxLiquidation = userDebt.mul(50).div(100); // Max 50% of the user's debt
+        uint256 maxLiquidation = getBorrowedPlusInterest(_user).mul(50).div(100); // Max 50% of the user's debt
         uint256 actualDebtToCover = _debtToCover > maxLiquidation ? maxLiquidation : _debtToCover;
-
-        uint256 collateralPrice = oracleSentinel.getPrice(_vault);
-        uint256 collateralToLiquidate = actualDebtToCover.mul(100 + vaultConfigs[_vault].liquidationBonus).div(100).mul(1e18).div(collateralPrice);
+        uint256 collateralToLiquidate = actualDebtToCover.mul(100 + vaultConfigs[_vault].liquidationBonus).div(100).mul(1e18).div(oracleSentinel.getPrice(_vault));
 
         require(collateralToLiquidate <= account.collateralBalances[_vault], "Not enough collateral to liquidate");
 
@@ -201,9 +199,24 @@ contract LendingPool is ReentrancyGuard, Ownable {
         emit Liquidated(msg.sender, _user, _vault, actualDebtToCover, collateralToLiquidate);
     }
 
-    function checkHealth(address _user, address _vault) public view returns (bool) {
-        UserAccount storage account = userAccounts[_user];
+    function checkHealth(address _user) public view returns (bool) {
         uint256 totalCollateralValueInUSD = getTotalCollateralValueInUSD(_user);
+        uint256 totalDebtInUSD = getBorrowedPlusInterest(_user);
+        return totalCollateralValueInUSD.mul(averageThreshold(_user)).div(100) >= totalDebtInUSD;
+    }
+
+     function averageThreshold(address _user) public view returns (uint256) {
+        uint256 totalValue = 0;
+        for (uint i = 0; i < vaults.length; i++) {
+            address vault = vaults[i];
+            totalValue = totalValue.add(vaultConfigs[vault].liquidationThreshold);
+        }
+
+        return totalValue / vaults.length; //average ltv
+    }
+
+    function checkHealth(address _user, address _vault) public view returns (bool) {
+        uint256 totalCollateralValueInUSD = getCollateralValueInUSD(_user, _vault);
         uint256 totalDebtInUSD = getBorrowedPlusInterest(_user);
         return totalCollateralValueInUSD.mul(vaultConfigs[_vault].liquidationThreshold).div(100) >= totalDebtInUSD;
     }
@@ -216,8 +229,8 @@ contract LendingPool is ReentrancyGuard, Ownable {
 
     function getTotalCollateralValueInUSD(address _user) public view returns (uint256) {
         uint256 totalValue = 0;
-        for (uint i = 0; i < vaultConfigs.length; i++) {
-            address vault = vaultConfigs[i];
+        for (uint i = 0; i < vaults.length; i++) {
+            address vault = vaults[i];
             totalValue = totalValue.add(getCollateralValueInUSD(_user, vault));
         }
         return totalValue;
@@ -232,7 +245,7 @@ contract LendingPool is ReentrancyGuard, Ownable {
 
     function getSuppliedPlusYield(address _user) public view returns (uint256) {
         UserAccount storage account = userAccounts[_user];
-        uint256 yield = calculateInterest(account.supplied, lastGlobalInterestTimestamp);
+        uint256 yield = calculateSupplyInterest(account.supplied, lastGlobalInterestTimestamp);
         return account.supplied.add(yield);
     }
 
@@ -275,6 +288,7 @@ contract LendingPool is ReentrancyGuard, Ownable {
 
     function addSupportedVault(address _vault, uint256 _collateralFactor, uint256 _liquidationThreshold, uint256 _liquidationBonus, uint256 _depositCap) external onlyOwner {
         require(vaultConfigs[_vault].collateralFactor == 0, "Vault already supported");
+        vaults.push(_vault);
         vaultConfigs[_vault] = VaultConfig({
             collateralFactor: _collateralFactor,
             liquidationThreshold: _liquidationThreshold,
@@ -296,6 +310,12 @@ contract LendingPool is ReentrancyGuard, Ownable {
     function calculateInterest(uint256 _amount, uint256 _lastTimestamp) internal view returns (uint256) {
         uint256 timeDelta = block.timestamp.sub(_lastTimestamp);
         uint256 interestRate = getBorrowAPR();
+        return _amount.mul(interestRate).mul(timeDelta).div(365 days).div(100);
+    }
+
+    function calculateSupplyInterest(uint256 _amount, uint256 _lastTimestamp) internal view returns (uint256) {
+        uint256 timeDelta = block.timestamp.sub(_lastTimestamp);
+        uint256 interestRate = getSupplyAPR();
         return _amount.mul(interestRate).mul(timeDelta).div(365 days).div(100);
     }
 }
