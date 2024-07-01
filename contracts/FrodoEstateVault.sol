@@ -9,7 +9,7 @@ import "./PropertyOracle.sol";
 contract FrodoEstateVault is ERC20, ReentrancyGuard {
     IERC721 public nftContract;
     PropertyOracle public oracle;
-    uint256 public constant TOTAL_SHARES = 10000;
+    uint256 public constant TOTAL_SHARES = 10000 * 1e18;
     uint256 public nftTokenId;
     bool public isNFTLocked;
     address public partner;

@@ -21,44 +21,39 @@ export const WalletButton = () => {
   //   connect,
   // ] = useConnect();
 
-  const { connectors, connectAsync, error, data } = useConnect({ config });
+  const { connectors, connect, error, data } = useConnect({ config });
 
   // Sign a user in following Sign-In with Ethereum
   const signIn = useCallback(async (connector) => {
     try {
       // Connect to the chosen Wallet connector e.g Metamask, WalletConnect etc.
-      const res = await connectAsync(connector);
-      if (!res.chainId) throw new Error("Something went wrong");
-
-      // Generate random nonce from server to prevent replay attacks
-      const nonceRes = await fetch("/api/auth/nonce");
-
-      // Substitute values into standard EIP-4361 sign-in message
-      // See: https://eips.ethereum.org/EIPS/eip-4361#abnf-message-format
-      const message = new SiweMessage({
-        domain: window.location.host,
-        address: res.accounts[0],
-        statement: "Sign in with Ethereum to the app.",
-        uri: window.location.origin,
-        version: "1",
-        chainId: res.chainId,
-        nonce: await nonceRes.text(),
-      });
-
-      // Ask user to sign the message with their Wallet (uses Ethers signing)
-      const signer = await connector.getSigner();
-      const signature = await signer.signMessage(message.prepareMessage());
-
-      // Send the signature to server to verify that user has signed it
-      const verifyRes = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message, signature }),
-      });
-      if (!verifyRes.ok) throw new Error("Error verifying message");
-
+      // const res = connect(connector);
+      // if (!res) throw new Error("Something went wrong");
+      // // Generate random nonce from server to prevent replay attacks
+      // const nonceRes = await fetch("/api/auth/nonce");
+      // // Substitute values into standard EIP-4361 sign-in message
+      // // See: https://eips.ethereum.org/EIPS/eip-4361#abnf-message-format
+      // const message = new SiweMessage({
+      //   domain: window.location.host,
+      //   address: res.accounts[0],
+      //   statement: "Sign in with Ethereum to the app.",
+      //   uri: window.location.origin,
+      //   version: "1",
+      //   chainId: res.chainId,
+      //   nonce: await nonceRes.text(),
+      // });
+      // // Ask user to sign the message with their Wallet (uses Ethers signing)
+      // const signer = await connector.getSigner();
+      // const signature = await signer.signMessage(message.prepareMessage());
+      // // Send the signature to server to verify that user has signed it
+      // const verifyRes = await fetch("/api/auth/verify", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify({ message, signature }),
+      // });
+      // if (!verifyRes.ok) throw new Error("Error verifying message");
       // It worked! User is signed in with Ethereum
     } catch (error) {
       // If user cancels sign-in, remove any session store and address
