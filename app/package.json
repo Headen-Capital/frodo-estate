@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "blitz dev",
-    "prebuild": "make -C .. contracts && typechain --target ethers-v5 --out-dir contracts ../out/**/*.json",
     "build": "blitz build",
     "start": "blitz start",
     "lint": "eslint --ignore-path .gitignore --ext .js,.ts,.tsx .",

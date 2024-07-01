@@ -13,8 +13,9 @@ contract PoolConfigurator is Ownable {
     event LiquidationBonusUpdated(address vault, uint256 newBonus);
     event DepositCapUpdated(address vault, uint256 newCap);
 
-    constructor(address _lendingPool) {
+    constructor(address _lendingPool, address owner) {
         lendingPool = LendingPool(_lendingPool);
+        transferOwnership(owner);
     }
 
     function setCollateralFactor(address _vault, uint256 _newFactor) external onlyOwner {

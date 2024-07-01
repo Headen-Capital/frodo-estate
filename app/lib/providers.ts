@@ -5,7 +5,8 @@ import {
   infuraId,
 } from "./constants";
 import { providers } from "ethers";
-import { Connector, defaultChains as chains, chain, Provider } from "wagmi";
+import { chains } from "./connectors";
+import { Connector } from "wagmi";
 
 type ProviderConfig = { chainId?: number; connector?: Connector };
 

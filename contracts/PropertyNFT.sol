@@ -7,11 +7,12 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@coinbase/verifications/abstracts/AttestationAccessControl.sol";
 import {Attestation, AttestationVerifier} from "@coinbase/verifications/libraries/AttestationVerifier.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./FrodoEstateVault.sol";
 import "./PropertyOracle.sol";
 
-contract FPropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessControl {
+contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessControl, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
@@ -38,9 +39,10 @@ contract FPropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContr
     event PartnerApproved(address partner);
     event PartnerRemoved(address partner);
 
-    constructor(address _usdcToken) ERC721("Frodo Estate Property", "FEP") {
+    constructor(address _usdcToken, address owner) ERC721("Frodo Estate Property", "FEP") {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         usdcToken = _usdcToken;
+        transferOwnership(owner);
     }
 
     function approvePartner(address partner) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -69,7 +71,7 @@ contract FPropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContr
         _verifyAttestation(msg.sender);
 
         // Create Oracle
-        PropertyOracle newOracle = new PropertyOracle();
+        PropertyOracle newOracle = new PropertyOracle(owner());
         newOracle.grantRole(newOracle.UPDATER_ROLE(), msg.sender);
         
 

@@ -4,3 +4,4 @@ out/
 
 # Gas Snapshot Artifact
 .gas-snapshot
+.env

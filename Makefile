@@ -37,3 +37,6 @@ report:; forge test --gas-report
 
 # Stop 'make' from mistaking commands for directories
 .PHONY: contracts
+
+
+deploy-sepolia:; forge script contracts/scripts/FrodoDeployer.sol:FrodoDeployer --chain 84532 --rpc-url base_sepolia --broadcast  -vv --gas-estimate-multiplier 150 --sender 0x4C741E7f98B166286157940Bc7bb86EBaEC51D0a

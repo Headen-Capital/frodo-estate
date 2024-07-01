@@ -58,7 +58,8 @@ contract LendingPool is ReentrancyGuard, Ownable {
         address _interestRateStrategy,
         address _oracleSentinel,
         address _lpToken,
-        address _debtToken
+        address _debtToken,
+        address owner
     ) {
         underlyingAsset = IERC20(_underlyingAsset);
         interestRateStrategy = InterestRateStrategy(_interestRateStrategy);
@@ -66,10 +67,20 @@ contract LendingPool is ReentrancyGuard, Ownable {
         lpToken = LPToken(_lpToken);
         debtToken = DebtToken(_debtToken);
         lastGlobalInterestTimestamp = block.timestamp;
+        transferOwnership(owner);
     }
 
     function setPoolConfigurator(address _poolConfigurator) external onlyOwner {
         poolConfigurator = PoolConfigurator(_poolConfigurator);
+    }
+
+    function setTokens( address _lpToken, address _debtToken) external onlyOwner {
+        lpToken = LPToken(_lpToken);
+        debtToken = DebtToken(_debtToken);
+    }
+
+    function setIRStrategy(  address _interestRateStrategy) external onlyOwner {
+         interestRateStrategy = InterestRateStrategy(_interestRateStrategy);
     }
 
     function supply(uint256 _amount) external nonReentrant {

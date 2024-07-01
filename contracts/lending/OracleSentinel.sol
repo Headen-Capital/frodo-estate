@@ -16,7 +16,9 @@ contract CollateralOracleSentinel is Ownable {
     event VaultRegistered(address vault);
     event CollateralUpdated(address user, address vault, uint256 amount);
 
-    constructor() {}
+    constructor(address owner) {
+        transferOwnership(owner);
+    }
 
     function registerVault(address _vault, address _priceOracle) external onlyOwner {
         registeredVaults[_vault] = true;

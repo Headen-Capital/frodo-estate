@@ -118,8 +118,10 @@ Security is integral to Frodo Estate, with contracts is being developed followin
 
 ## Base Goerli
 
-- PropertyNFT:
-- YieldStrategyManager:
-- MicroLendingPool:
+- PropertyNFT: 0x7d5524041A6630352C761ddBB360226e0e6140EF
+- YieldStrategyManager: 0x9B45705f8dd61785fa00F63DeB09910eae89f5AF
+- MicroLendingPool: 0x9B9c98f8D04FeA09e50953187F93b505D2539BE4
 - PoolConfigurator:
-- CollateralOracleSentinel:
+- CollateralOracleSentinel: 0x393d1c765bFf6402CFaEB83D6e091EF6993414B1
+- LP Token: 0xf97aea816b1eB11BcD4A58A27512a2240aE245F8
+- Debt Token: 0xa332431d2375c3Ac696599E7f29BDF446122bcC9

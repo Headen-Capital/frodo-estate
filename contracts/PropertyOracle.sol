@@ -11,9 +11,10 @@ contract PropertyOracle is AccessControl {
 
     event ValueUpdated(address indexed vault, uint256 newValue, uint256 timestamp);
 
-    constructor() {
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    constructor(address owner) {
         _setupRole(UPDATER_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, owner);
+        _setupRole(UPDATER_ROLE, owner);
     }
 
     function updateValue(address vault, uint256 _value) external onlyRole(UPDATER_ROLE) { // in usd

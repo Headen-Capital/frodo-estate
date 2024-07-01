@@ -7,8 +7,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract LPToken is ERC20, Ownable {
     address public lendingPool;
 
-    constructor(string memory name, string memory symbol, address _lendingPool) ERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, address _lendingPool, address owner) ERC20(name, symbol) {
          lendingPool = _lendingPool;
+         transferOwnership(owner);
     }
 
     function setLendingPool(address _lendingPool) external onlyOwner {

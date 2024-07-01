@@ -25,17 +25,20 @@ contract YieldStrategyManager is Ownable, ReentrancyGuard {
     event Withdrawn(address indexed user, uint256 amount);
     event YieldHarvested(uint256 amount);
     event AllocationsUpdated(uint256 aave, uint256 morpho, uint256 uniswap);
+    event StrategiesUpdated(address aave, address morpho, address uniswap);
 
     constructor(
         address _usdtToken,
         address _aaveStrategy,
         address _morphoStrategy,
-        address _uniswapStrategy
+        address _uniswapStrategy,
+        address owner
     ) {
         usdtToken = IERC20(_usdtToken);
         aaveStrategy = AaveYieldStrategy(_aaveStrategy);
         morphoStrategy = MorphoYieldStrategy(_morphoStrategy);
         uniswapStrategy = UniswapYieldStrategy(_uniswapStrategy);
+        transferOwnership(owner);
 
         // Default allocations
         aaveAllocation = 40;
@@ -49,6 +52,13 @@ contract YieldStrategyManager is Ownable, ReentrancyGuard {
         morphoAllocation = _morpho;
         uniswapAllocation = _uniswap;
         emit AllocationsUpdated(_aave, _morpho, _uniswap);
+    }
+
+    function updateStrategies( address _aaveStrategy,address _morphoStrategy,address _uniswapStrategy) external onlyOwner {
+         aaveStrategy = AaveYieldStrategy(_aaveStrategy);
+        morphoStrategy = MorphoYieldStrategy(_morphoStrategy);
+        uniswapStrategy = UniswapYieldStrategy(_uniswapStrategy);
+        emit StrategiesUpdated(_aaveStrategy, _morphoStrategy, _uniswapStrategy);
     }
 
     function deposit(uint256 amount) external nonReentrant {

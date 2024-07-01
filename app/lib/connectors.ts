@@ -30,7 +30,7 @@ const connectors = [
     preference: "smartWalletOnly",
   }),
   safe(),
-  // metaMask({ options: { name: "Frodo Estate" } }),
+  metaMask(),
 ];
 
 const chains = [

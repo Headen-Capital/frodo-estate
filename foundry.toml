@@ -3,7 +3,7 @@ src = "contracts"
 ffi = false
 fuzz_runs = 256
 optimizer = true
-optimizer_runs = 1000000
+optimizer_runs = 200
 remappings = [
   "ds-test/=lib/ds-test/src/",
   "solmate/=lib/solmate/src/",
@@ -14,3 +14,14 @@ verbosity = 1
 # Extreme Fuzzing CI Profile :P
 [profile.ci]
 fuzz_runs = 100_000
+
+
+[rpc_endpoints]
+sepolia = "${RPC_SEPOLIA}"
+base = "${RPC_BASE}"
+base_sepolia = "${RPC_BASE_SEPOLIA}"
+
+[etherscan]
+sepolia={key="${ETHERSCAN_API_KEY_SEPOLIA}",chainId=11155111}
+base={key="${ETHERSCAN_API_KEY_BASE}",chain=8453}
+base_sepolia={key="${ETHERSCAN_API_KEY_BASE_SEPOLIA}",chain=84532}

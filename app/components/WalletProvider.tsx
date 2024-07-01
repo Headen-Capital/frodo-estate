@@ -1,5 +1,4 @@
 import { chains, connectors, transportsData } from "lib/connectors";
-import { networkProvider, webSocketProvider } from "lib/providers";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
 import { base } from "viem/chains";
