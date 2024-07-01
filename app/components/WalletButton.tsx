@@ -2,6 +2,7 @@ import { useIsMounted } from "hooks/useIsMounted";
 import { useConnect } from "wagmi";
 import { useCallback, useEffect, useState } from "react";
 import { SiweMessage } from "siwe";
+import { config } from "./WalletProvider";
 
 export const WalletButton = () => {
   const isMounted = useIsMounted();
@@ -11,21 +12,23 @@ export const WalletButton = () => {
     loading?: boolean;
   }>({});
 
-  const [
-    {
-      data: { connector, connectors },
-      error,
-      loading,
-    },
-    connect,
-  ] = useConnect();
+  // const [
+  //   {
+  //     data: { connector, connectors },
+  //     error,
+  //     loading,
+  //   },
+  //   connect,
+  // ] = useConnect();
+
+  const { connectors, connectAsync, error, data } = useConnect({ config });
 
   // Sign a user in following Sign-In with Ethereum
   const signIn = useCallback(async (connector) => {
     try {
       // Connect to the chosen Wallet connector e.g Metamask, WalletConnect etc.
-      const res = await connect(connector);
-      if (!res.data) throw res.error ?? new Error("Something went wrong");
+      const res = await connectAsync(connector);
+      if (!res.chainId) throw new Error("Something went wrong");
 
       // Generate random nonce from server to prevent replay attacks
       const nonceRes = await fetch("/api/auth/nonce");
@@ -34,11 +37,11 @@ export const WalletButton = () => {
       // See: https://eips.ethereum.org/EIPS/eip-4361#abnf-message-format
       const message = new SiweMessage({
         domain: window.location.host,
-        address: res.data.account,
+        address: res.accounts[0],
         statement: "Sign in with Ethereum to the app.",
         uri: window.location.origin,
         version: "1",
-        chainId: res.data.chain?.id,
+        chainId: res.chainId,
         nonce: await nonceRes.text(),
       });
 
@@ -107,7 +110,7 @@ export const WalletButton = () => {
           >
             {x.id === "injected" ? (isMounted ? x.name : x.id) : x.name}
             {isMounted && !x.ready && " (unsupported)"}
-            {loading && x.name === connector?.name && "…"}
+            {/* {loading && x.name === connector?.name && "…"} */}
           </button>
         ))}
       </div>

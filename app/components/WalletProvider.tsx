@@ -1,17 +1,27 @@
-import { connectors } from "lib/connectors";
+import { chains, connectors, transportsData } from "lib/connectors";
 import { networkProvider, webSocketProvider } from "lib/providers";
-import { Provider } from "wagmi";
+import { WagmiProvider, createConfig, http } from "wagmi";
+import { OnchainKitProvider } from "@coinbase/onchainkit";
+import { base } from "viem/chains";
+import { onchainKitKey } from "lib/constants";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
+
+export const config = createConfig({
+  chains: chains,
+  connectors: connectors,
+  transports: transportsData,
+});
 
 export const WalletProvider = ({ children }) => {
   return (
-    // Create Context for wallet account, connectors and network providers
-    <Provider
-      autoConnect
-      connectors={connectors}
-      provider={networkProvider}
-      webSocketProvider={webSocketProvider}
-    >
-      {children}
-    </Provider>
+    <QueryClientProvider client={queryClient}>
+      <WagmiProvider config={config}>
+        <OnchainKitProvider apiKey={onchainKitKey} chain={base}>
+          {children}
+        </OnchainKitProvider>
+      </WagmiProvider>
+    </QueryClientProvider>
   );
 };

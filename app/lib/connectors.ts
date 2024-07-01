@@ -1,34 +1,54 @@
-import { defaultChains as chains, chain } from "wagmi";
-import { coinbaseWallet, InjectedConnector, WalletConnectConnector , WalletLinkConnector} from 'wagmi/connectors';
+import {
+  arbitrum,
+  arbitrumGoerli,
+  baseGoerli,
+  mainnet,
+  sepolia,
+  base,
+  Chain,
+} from "wagmi/chains";
+import {
+  coinbaseWallet,
+  injected,
+  walletConnect,
+  metaMask,
+  safe,
+} from "wagmi/connectors";
 
-import { infuraId, appName, defaultChain } from "./constants";
+import { walletConnectId } from "./constants";
+import { http } from "viem";
 
 // Set up Wallet connectors
-const connectors = ({ chainId }: { chainId?: number }) => {
-  const rpcUrl =
-    chains.find((x) => x.id === chainId)?.rpcUrls?.[0] ??
-    defaultChain.rpcUrls[0];
-  return [
-    // Support MetaMask wallets
-    new InjectedConnector({ chains, options: { shimDisconnect: true } }),
-    // Support WalletConnect wallets e.g Rainbow
-    new WalletConnectConnector({
-      chains,
-      options: {
-        infuraId,
-        qrcode: true,
-      },
-    }),
-    // Support Coinbase Wallet
-    new WalletLinkConnector({
-      chains,
-      options: {
-        appName,
-        jsonRpcUrl: `${rpcUrl}/${infuraId}`,
-      },
-    }),
-    coinbaseWallet({ appName: 'Frodo Estate', preference: 'smartWalletOnly' }),
-  ];
+const connectors = [
+  injected(),
+  walletConnect({
+    showQrModal: true,
+    projectId: walletConnectId,
+  }),
+  coinbaseWallet({
+    appName: "Frodo Estate",
+    preference: "smartWalletOnly",
+  }),
+  safe(),
+  // metaMask({ options: { name: "Frodo Estate" } }),
+];
+
+const chains = [
+  arbitrum,
+  arbitrumGoerli,
+  base,
+  baseGoerli,
+  mainnet,
+  sepolia,
+] as [Chain, ...Chain[]];
+
+const transportsData = {
+  [mainnet.id]: http(),
+  [base.id]: http(),
+  [baseGoerli.id]: http(),
+  [sepolia.id]: http(),
+  [arbitrum.id]: http(),
+  [arbitrumGoerli.id]: http(),
 };
 
-export { connectors };
+export { connectors, chains, transportsData };
