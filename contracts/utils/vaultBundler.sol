@@ -48,7 +48,7 @@ contract EstatesBundler {
             pool.depositCollateral(address(vault), bundle.amounts[i]);
             pool.borrow(address(vault), bundle.amounts[i]/2);
             strategyManager.harvestYields();
-            strategyManager.deposit(bundle.amounts[i]/2);
+            strategyManager.deposit(bundle.amounts[i]/2, msg.sender);
         }
 
     }
@@ -62,7 +62,7 @@ contract EstatesBundler {
             pool.depositCollateral(address(vault), bundle.amounts[i]);
             pool.borrow(address(vault), borrowAmount);
             strategyManager.harvestYields();
-            strategyManager.deposit(borrowAmount);
+            strategyManager.deposit(borrowAmount, msg.sender);
         }
 
     }

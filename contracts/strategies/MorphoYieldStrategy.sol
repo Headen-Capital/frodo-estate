@@ -8,14 +8,23 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 
 interface IMorphoLendingPool {
-    function supply(address underlying, uint256 amount) external;
-    function withdraw(address underlying, uint256 amount) external;
-    function claimRewards() external;
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares);
+    function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares);
+    function convertToAssets(uint256 shares) external view returns (uint256 assets);
+    function balanceOf(address user) external view returns (uint256 assets);
+}
+
+struct MarketParams {
+    address loanToken;
+    address collateralToken;
+    address oracle;
+    address irm;
+    uint256 lltv;
 }
 
 contract MorphoYieldStrategy is ReentrancyGuard, Ownable, AccessControl {
     IERC20 public usdtToken;
-    IMorphoLendingPool public morphoLendingPool;
+    IMorphoLendingPool public metaMorphoVault;
     IERC20 public morphoToken;
 
     bytes32 public constant USER_ROLE = keccak256("USER_ROLE");
@@ -24,9 +33,9 @@ contract MorphoYieldStrategy is ReentrancyGuard, Ownable, AccessControl {
     event Withdrawn(uint256 amount);
     event YieldHarvested(uint256 amount);
 
-    constructor(address _usdtToken, address _morphoLendingPool, address _morphoToken, address owner) {
+    constructor(address _usdtToken, address _metaMorphoVault, address _morphoToken, address owner) {
         usdtToken = IERC20(_usdtToken);
-        morphoLendingPool = IMorphoLendingPool(_morphoLendingPool);
+        metaMorphoVault = IMorphoLendingPool(_metaMorphoVault);
         morphoToken = IERC20(_morphoToken);
         transferOwnership(owner);
 
@@ -37,29 +46,22 @@ contract MorphoYieldStrategy is ReentrancyGuard, Ownable, AccessControl {
 
     function deposit(uint256 amount) external onlyRole(USER_ROLE)  nonReentrant {
         require(usdtToken.transferFrom(msg.sender, address(this), amount), "Transfer failed");
-        usdtToken.approve(address(morphoLendingPool), amount);
-        morphoLendingPool.supply(address(usdtToken), amount);
+        usdtToken.approve(address(metaMorphoVault), amount);
+        metaMorphoVault.deposit(amount, address(this));
         emit Deposited(amount);
     }
 
     function withdraw(uint256 amount) external onlyRole(USER_ROLE)  nonReentrant {
-        morphoLendingPool.withdraw(address(usdtToken), amount);
-        require(usdtToken.transfer(msg.sender, amount), "Transfer failed");
+        metaMorphoVault.withdraw(amount, msg.sender, address(this));
+        // require(usdtToken.transfer(msg.sender, amount), "Transfer failed");
         emit Withdrawn(amount);
     }
 
     function harvestYield() external onlyRole(USER_ROLE)  nonReentrant {
-        uint256 balanceBefore = morphoToken.balanceOf(address(this));
-        morphoLendingPool.claimRewards();
-        uint256 yieldAmount = morphoToken.balanceOf(address(this)) - balanceBefore;
-        if (yieldAmount > 0) {
-            require(morphoToken.transfer(msg.sender, yieldAmount), "Transfer failed");
-            emit YieldHarvested(yieldAmount);
-        }
+        emit YieldHarvested(0);
     }
 
     function getTotalValue() external view returns (uint256) {
-        // placeholder
-        return usdtToken.balanceOf(address(this));
+        return metaMorphoVault.convertToAssets(metaMorphoVault.balanceOf(address(this)));
     }
 }

@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 interface IAaveLendingPool {
-    function deposit(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
+    function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
     function withdraw(address asset, uint256 amount, address to) external returns (uint256);
 }
 
@@ -36,13 +36,12 @@ contract AaveYieldStrategy is ReentrancyGuard, Ownable, AccessControl {
     function deposit(uint256 amount) external onlyRole(USER_ROLE) nonReentrant {
         require(usdtToken.transferFrom(msg.sender, address(this), amount), "Transfer failed");
         usdtToken.approve(address(aaveLendingPool), amount);
-        aaveLendingPool.deposit(address(usdtToken), amount, address(this), 0);
+        aaveLendingPool.supply(address(usdtToken), amount, address(this), 0);
         emit Deposited(amount);
     }
 
     function withdraw(uint256 amount) external onlyRole(USER_ROLE) nonReentrant {
-        aaveLendingPool.withdraw(address(usdtToken), amount, address(this));
-        require(usdtToken.transfer(msg.sender, amount), "Transfer failed");
+        aaveLendingPool.withdraw(address(usdtToken), amount, msg.sender);
         emit Withdrawn(amount);
     }
 

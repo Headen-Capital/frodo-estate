@@ -25,13 +25,14 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
         address oracle;
         address vault;
         uint256 value;
+        address partner;
     }
 
     mapping(uint256 => PropertyDetails) public properties;
     mapping(address => bool) public approvedPartners;
 
     address public usdcToken;
-    bytes32 public schemaUid = 0x2f34a2ffe5f87b2f45fbc7c784896b768d77261e2f24f77341ae43751c765a69; //account schemaUId for account verification
+    bytes32 public schemaUid;
 
     event PropertyMinted(uint256 indexed tokenId, address indexed partner, PropertyUsage usage, address oracle, address vault);
     event PropertyUsageUpdated(uint256 indexed tokenId, PropertyUsage newUsage);
@@ -42,6 +43,7 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
     constructor(address _usdcToken, address owner) ERC721("Frodo Estate Property", "FEP") {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         usdcToken = _usdcToken;
+        schemaUid = 0x2f34a2ffe5f87b2f45fbc7c784896b768d77261e2f24f77341ae43751c765a69;
         transferOwnership(owner);
     }
 
@@ -50,6 +52,10 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
         approvedPartners[partner] = true;
         grantRole(PARTNER_ROLE, partner);
         emit PartnerApproved(partner);
+    }
+
+    function updateSchemaUID(bytes32 _schemaUid) external onlyRole(DEFAULT_ADMIN_ROLE) {
+       schemaUid =_schemaUid;
     }
 
     function removePartner(address partner) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -85,7 +91,8 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
             usage: usage,
             oracle: address(newOracle),
             vault: address(newVault),
-            value: initialValue
+            value: initialValue,
+            partner: msg.sender
         });
 
         emit PropertyMinted(newTokenId, msg.sender, usage, address(newOracle), address(newVault));
@@ -93,10 +100,17 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
         return newTokenId;
     }
 
-    function updatePropertyUsage(uint256 tokenId, PropertyUsage newUsage) external {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "Caller is not owner nor approved");
+    function updatePropertyUsage(uint256 tokenId, PropertyUsage newUsage) external onlyRole(PARTNER_ROLE) {
+        require(properties[tokenId].partner == msg.sender, "Caller is not owner nor approved");
         properties[tokenId].usage = newUsage;
         emit PropertyUsageUpdated(tokenId, newUsage);
+    }
+
+    function updatePropertyValue(uint256 tokenId,  uint256 _value) external onlyRole(PARTNER_ROLE) {
+        require(properties[tokenId].partner == msg.sender, "Caller is not owner nor approved");
+        PropertyDetails memory property = properties[tokenId];
+        PropertyOracle(property.oracle).updateValue(property.vault, _value);
+        emit PropertyValueUpdated(tokenId, _value);
     }
 
     function getPropertyDetails(uint256 tokenId) external view returns (PropertyDetails memory) {

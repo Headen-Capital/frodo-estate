@@ -14,7 +14,7 @@ contract FrodoEstateVault is ERC20, ReentrancyGuard {
     bool public isNFTLocked;
     address public partner;
 
-    IERC20 public usdtToken;
+    IERC20 public usdcToken;
 
     event NFTLocked(uint256 tokenId);
     event NFTUnlocked(uint256 tokenId);
@@ -22,10 +22,10 @@ contract FrodoEstateVault is ERC20, ReentrancyGuard {
     event TokensSold(address indexed seller, uint256 amount);
     event InvestmentClosed(uint256 totalValue);
 
-    constructor(address _nftContract, address _oracle, address _usdtToken, address _partner) ERC20("Frodo Estate Vault Token", "FET") {
+    constructor(address _nftContract, address _oracle, address _usdcToken, address _partner) ERC20("Frodo Estate Vault Token", "FET") {
         nftContract = IERC721(_nftContract);
         oracle = PropertyOracle(_oracle);
-        usdtToken = IERC20(_usdtToken);
+        usdcToken = IERC20(_usdcToken);
         partner = _partner;
     }
 
@@ -44,7 +44,7 @@ contract FrodoEstateVault is ERC20, ReentrancyGuard {
         require(amount <= balanceOf(address(this)), "Not enough tokens available");
         
         uint256 price = (amount * oracle.getValue(address(this))) / TOTAL_SHARES;
-        require(usdtToken.transferFrom(msg.sender, address(this), price), "USDT transfer failed");
+        require(usdcToken.transferFrom(msg.sender, address(this), price), "USDT transfer failed");
 
         _transfer(address(this), msg.sender, amount);
         emit TokensPurchased(msg.sender, amount);
@@ -52,9 +52,10 @@ contract FrodoEstateVault is ERC20, ReentrancyGuard {
 
     function sellTokens(uint256 amount) external nonReentrant {
         require(balanceOf(msg.sender) >= amount, "Insufficient tokens");
-        
+
         uint256 price = (amount * oracle.getValue(address(this))) / TOTAL_SHARES;
-        require(usdtToken.transfer(msg.sender, price), "USDT transfer failed");
+        require(price <= usdcToken.balanceOf(address(this)), "Not enough tokens available");
+        require(usdcToken.transfer(msg.sender, price), "USDT transfer failed");
 
         _transfer(msg.sender, address(this), amount);
         emit TokensSold(msg.sender, amount);
@@ -65,10 +66,18 @@ contract FrodoEstateVault is ERC20, ReentrancyGuard {
         require(isNFTLocked, "No NFT locked");
         
         uint256 totalValue = oracle.getValue(address(this));
-        require(usdtToken.transferFrom(partner, address(this), totalValue), "USDT transfer failed");
+        require(usdcToken.transferFrom(partner, address(this), totalValue), "USDT transfer failed");
 
         isNFTLocked = false;
         nftContract.transferFrom(address(this), partner, nftTokenId);
+
+        // burn and refund if any shares is left
+        if(balanceOf(address(this)) > 0){
+            uint remainingBalance = balanceOf(address(this));
+            _burn(address(this), remainingBalance);
+            require(usdcToken.transfer(partner, remainingBalance * totalValue / TOTAL_SHARES), "USDT transfer failed");
+        }
+
         emit NFTUnlocked(nftTokenId);
         emit InvestmentClosed(totalValue);
     }
@@ -78,18 +87,18 @@ contract FrodoEstateVault is ERC20, ReentrancyGuard {
         uint256 share = balanceOf(msg.sender);
         require(share > 0, "No tokens to withdraw");
         
-        uint256 totalValue = usdtToken.balanceOf(address(this));
+        uint256 totalValue = usdcToken.balanceOf(address(this));
         uint256 userShare = (share * totalValue) / TOTAL_SHARES;
 
         _burn(msg.sender, share);
-        require(usdtToken.transfer(msg.sender, userShare), "USDT transfer failed");
+        require(usdcToken.transfer(msg.sender, userShare), "USDT transfer failed");
     }
 
-    function getTokenValue() public view returns (uint256) {
+    function getTokenValue() external view returns (uint256) {
         return oracle.getValue(address(this)) / TOTAL_SHARES;
     }
 
-    function getTokenPrice(uint256 _amount) public view returns (uint256) {
+    function getTokenPrice(uint256 _amount) external view returns (uint256) {
         return _amount * oracle.getValue(address(this)) / TOTAL_SHARES;
     }
 }
