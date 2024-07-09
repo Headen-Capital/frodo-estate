@@ -11,6 +11,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./FrodoEstateVault.sol";
 import "./PropertyOracle.sol";
+import "./FrodoPropertyRentNFT.sol"; 
+
 
 contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessControl, Ownable {
     using Counters for Counters.Counter;
@@ -39,6 +41,7 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
     event PropertyValueUpdated(uint256 indexed tokenId, uint256 newValue);
     event PartnerApproved(address partner);
     event PartnerRemoved(address partner);
+    event PropertyListedForRent(uint256 indexed tokenId, uint256 amount);
 
     constructor(address _usdcToken, address owner) ERC721("Frodo Estate Property", "FEP") {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -67,7 +70,9 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
     function mintProperty(
         string memory tokenURI,
         PropertyUsage usage,
-        uint256 initialValue
+        uint256 initialValue,
+        string calldata vaultName,
+        string calldata vaultSymbol
     ) external onlyRole(PARTNER_ROLE) returns (uint256) {
         _tokenIds.increment();
         uint256 newTokenId = _tokenIds.current();
@@ -82,7 +87,7 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
         
 
         // Create Vault
-        FrodoEstateVault newVault = new FrodoEstateVault(address(this), address(newOracle), usdcToken, msg.sender);
+        FrodoEstateVault newVault = new FrodoEstateVault(address(this), address(newOracle), usdcToken, msg.sender, vaultName, vaultSymbol);
         newOracle.updateValue(address(newVault), initialValue);
         require(_isApprovedOrOwner(address(newVault), newTokenId),"Approve the vault contract before minting Property");
         newVault.lockNFT(newTokenId);
@@ -98,6 +103,26 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
         emit PropertyMinted(newTokenId, msg.sender, usage, address(newOracle), address(newVault));
 
         return newTokenId;
+    }
+
+    function leaseProperty(
+        uint256 tokenId,
+        uint256 rentAmount,
+        address rental,
+        PropertyUsage usage,
+        uint256 initialValue
+    ) external onlyRole(PARTNER_ROLE) returns (uint256) {
+        require(properties[tokenId].partner == msg.sender, "Caller is not owner nor approved");
+        
+        _verifyAttestation(msg.sender);
+
+        // Create Oracle
+        _transfer(msg.sender, properties[tokenId].partner, tokenId);
+        PropertyRentNFT rent = PropertyRentNFT(rental);
+        _approve(address(rent), tokenId);
+        rent.listPropertyForRent(tokenId, rentAmount, msg.sender);
+        
+        emit PropertyListedForRent(tokenId, rentAmount);
     }
 
     function updatePropertyUsage(uint256 tokenId, PropertyUsage newUsage) external onlyRole(PARTNER_ROLE) {
@@ -127,3 +152,9 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
         AttestationVerifier.verifyAttestation(attestation,user, schemaUid);
     }
 }
+
+
+// TODO
+// - uniswap yield strategy
+// - FrodoRentVault for renting NFT to a user vault as proof of rent, owner pays monthly or yearly to vault, on default nft is transferred to owner,
+// - Owner can be FrodoEstateVault or Partner
