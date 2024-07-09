@@ -96,11 +96,12 @@ contract UniswapYieldStrategy is ReentrancyGuard, AccessControl {
             });
 
         if (tokenId == 0) {
-            (tokenId, ,uint256 amount0, uint256 amount1) = nonfungiblePositionManager.mint(mintParams);
+            (uint256 _tokenId,, uint256 amount0, uint256 amount1) = nonfungiblePositionManager.mint(mintParams);
+            tokenId = _tokenId;
             emit Deposited(msg.sender, amount0, amount1);
         } else {
             _rebalance();
-            (uint128 liquidityAdded,, uint256 amount0, uint256 amount1) = nonfungiblePositionManager.increaseLiquidity(
+            (uint128 liquidityAdded, uint256 amount0, uint256 amount1) = nonfungiblePositionManager.increaseLiquidity(
                 INonfungiblePositionManager.IncreaseLiquidityParams({
                     tokenId: tokenId,
                     amount0Desired: mintParams.amount0Desired,
