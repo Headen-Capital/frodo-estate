@@ -3,60 +3,71 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-interface IAaveLendingPool {
+interface IAToken is IERC20 {
+    function UNDERLYING_ASSET_ADDRESS() external view returns (address);
+}
+
+interface IPool {
     function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
     function withdraw(address asset, uint256 amount, address to) external returns (uint256);
 }
 
-contract AaveYieldStrategy is ReentrancyGuard, Ownable, AccessControl {
-    IERC20 public usdtToken;
-    IAaveLendingPool public aaveLendingPool;
-    IERC20 public aUsdtToken;
+contract AaveYieldStrategy is ReentrancyGuard, AccessControl {
+    IPool public immutable pool;
+    IAToken public immutable aToken;
+    IERC20 public immutable underlyingAsset;
+
+    uint256 private totalDeposited;
 
     bytes32 public constant USER_ROLE = keccak256("USER_ROLE");
 
-    event Deposited(uint256 amount);
-    event Withdrawn(uint256 amount);
-    event YieldHarvested(uint256 amount);
+    event Deposited(address indexed user, uint256 amount);
+    event Withdrawn(address indexed user, uint256 amount);
+    event YieldHarvested(address indexed user, uint256 amount);
 
-    constructor(address _usdtToken, address _aaveLendingPool, address _aUsdtToken, address owner){
-        usdtToken = IERC20(_usdtToken);
-        aaveLendingPool = IAaveLendingPool(_aaveLendingPool);
-        aUsdtToken = IERC20(_aUsdtToken);
-        transferOwnership(owner);
+    constructor(address _pool, address _aToken, address owner) {
+        pool = IPool(_pool);
+        aToken = IAToken(_aToken);
+        underlyingAsset = IERC20(aToken.UNDERLYING_ASSET_ADDRESS());
 
-        _setupRole(USER_ROLE, msg.sender);
         _setupRole(DEFAULT_ADMIN_ROLE, owner);
         _setupRole(USER_ROLE, owner);
+        _setupRole(USER_ROLE, msg.sender);
     }
 
     function deposit(uint256 amount) external onlyRole(USER_ROLE) nonReentrant {
-        require(usdtToken.transferFrom(msg.sender, address(this), amount), "Transfer failed");
-        usdtToken.approve(address(aaveLendingPool), amount);
-        aaveLendingPool.supply(address(usdtToken), amount, address(this), 0);
-        emit Deposited(amount);
+        require(underlyingAsset.transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        underlyingAsset.approve(address(pool), amount);
+        pool.supply(address(underlyingAsset), amount, address(this), 0);
+        totalDeposited += amount;
+        emit Deposited(msg.sender, amount);
     }
 
     function withdraw(uint256 amount) external onlyRole(USER_ROLE) nonReentrant {
-        aaveLendingPool.withdraw(address(usdtToken), amount, msg.sender);
-        emit Withdrawn(amount);
+        require(amount <= totalDeposited, "Cannot withdraw more than deposited");
+        uint256 withdrawn = pool.withdraw(address(underlyingAsset), amount, msg.sender);
+        totalDeposited -= withdrawn;
+        emit Withdrawn(msg.sender, withdrawn);
     }
 
     function harvestYield() external onlyRole(USER_ROLE) nonReentrant {
-        uint256 aBalance = aUsdtToken.balanceOf(address(this));
-        uint256 usdtBalance = usdtToken.balanceOf(address(this));
-        uint256 yieldAmount = aBalance - usdtBalance;
-        if (yieldAmount > 0) {
-            aaveLendingPool.withdraw(address(usdtToken), yieldAmount, address(this));
-            require(usdtToken.transfer(msg.sender, yieldAmount), "Transfer failed");
-            emit YieldHarvested(yieldAmount);
-        }
+        uint256 aTokenBalance = aToken.balanceOf(address(this));
+        require(aTokenBalance > totalDeposited, "No yield to harvest");
+        
+        uint256 yieldAmount = aTokenBalance - totalDeposited;
+        uint256 withdrawn = pool.withdraw(address(underlyingAsset), yieldAmount, msg.sender);
+        
+        emit YieldHarvested(msg.sender, withdrawn);
     }
 
-    function getTotalValue() external view returns (uint256) {
-        return aUsdtToken.balanceOf(address(this));
+    function getTotalValue() public view returns (uint256) {
+        return aToken.balanceOf(address(this));
+    }
+
+    function getYieldAmount() public view returns (uint256) {
+        uint256 aTokenBalance = aToken.balanceOf(address(this));
+        return aTokenBalance > totalDeposited ? aTokenBalance - totalDeposited : 0;
     }
 }

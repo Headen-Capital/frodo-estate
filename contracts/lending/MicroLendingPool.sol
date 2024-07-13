@@ -11,7 +11,7 @@ import {InterestRateStrategy} from "./InterestRateStrategy.sol";
 import {CollateralOracleSentinel} from "./OracleSentinel.sol";
 import {LPToken} from "./LPToken.sol";
 import {DebtToken} from "./DebtToken.sol";
-import {PoolConfigurator} from "./MicroLendingPoolConfiguration.sol";
+import {PoolConfigurator} from "./MicroLendingPoolConfigurator.sol";
 
 contract LendingPool is ReentrancyGuard, Ownable, AccessControl, Pausable {
     using SafeMath for uint256;
@@ -368,24 +368,24 @@ contract LendingPool is ReentrancyGuard, Ownable, AccessControl, Pausable {
     }
 
     // Flash loan functionality
-    // function flashLoan(address receiver, uint256 amount, bytes calldata params) external nonReentrant whenNotPaused {
-    //     require(amount <= totalSupplied.sub(totalBorrowed), "Not enough liquidity");
+    function flashLoan(address receiver, uint256 amount, bytes calldata params) external nonReentrant whenNotPaused {
+        require(amount <= totalSupplied.sub(totalBorrowed), "Not enough liquidity");
         
-    //     uint256 fee = amount.mul(5).div(10000); // 0.05% fee
-    //     uint256 amountToRepay = amount.add(fee);
+        uint256 fee = amount.mul(50).div(10000); // 0.5% fee
+        uint256 amountToRepay = amount.add(fee);
 
-    //     require(underlyingAsset.transfer(receiver, amount), "Transfer failed");
+        require(underlyingAsset.transfer(receiver, amount), "Transfer failed");
 
-    //     // Call the receiver's function
-    //     (bool success, ) = receiver.call(abi.encodeWithSignature("executeOperation(uint256,uint256,address)", amount, fee, address(this)));
-    //     require(success, "Flash loan execution failed");
+        // Call the receiver's function
+        (bool success, ) = receiver.call(abi.encodeWithSignature("executeOperation(uint256,uint256,address,address,bytes)", amount, fee, address(this),msg.sender, params));
+        require(success, "Flash loan execution failed");
 
-    //     // Repay the flash loan
-    //     require(underlyingAsset.transferFrom(receiver, address(this), amountToRepay), "Flash loan repayment failed");
+        // Repay the flash loan
+        require(underlyingAsset.transferFrom(receiver, address(this), amountToRepay), "Flash loan repayment failed");
 
-    //     // Update total supplied with the fee
-    //     totalSupplied = totalSupplied.add(fee);
-    // }
+        // Update total supplied with the fee
+        totalSupplied = totalSupplied.add(fee);
+    }
 
     // View function to get all supported vaults
     function getSupportedVaults() external view returns (address[] memory) {

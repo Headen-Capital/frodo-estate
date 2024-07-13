@@ -98,6 +98,10 @@ contract FrodoEstateVault is ERC20, ReentrancyGuard {
         return oracle.getValue(address(this)) / TOTAL_SHARES;
     }
 
+    function getTotalShares() external view returns (uint256) {
+        return TOTAL_SHARES;
+    }
+
     function getTokenPrice(uint256 _amount) external view returns (uint256) {
         return _amount * oracle.getValue(address(this)) / TOTAL_SHARES;
     }

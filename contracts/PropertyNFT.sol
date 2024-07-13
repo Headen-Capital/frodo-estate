@@ -12,6 +12,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./FrodoEstateVault.sol";
 import "./PropertyOracle.sol";
 import "./FrodoPropertyRentNFT.sol"; 
+import "./lending/OracleSentinel.sol";
 
 
 contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessControl, Ownable {
@@ -35,6 +36,7 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
 
     address public usdcToken;
     bytes32 public schemaUid;
+    address public oracleSentinel;
 
     event PropertyMinted(uint256 indexed tokenId, address indexed partner, PropertyUsage usage, address oracle, address vault);
     event PropertyUsageUpdated(uint256 indexed tokenId, PropertyUsage newUsage);
@@ -59,6 +61,10 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
 
     function updateSchemaUID(bytes32 _schemaUid) external onlyRole(DEFAULT_ADMIN_ROLE) {
        schemaUid =_schemaUid;
+    }
+
+    function updateSentinel(address _sentinel) external onlyRole(DEFAULT_ADMIN_ROLE) {
+       oracleSentinel =_sentinel;
     }
 
     function removePartner(address partner) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -91,6 +97,7 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
         newOracle.updateValue(address(newVault), initialValue);
         require(_isApprovedOrOwner(address(newVault), newTokenId),"Approve the vault contract before minting Property");
         newVault.lockNFT(newTokenId);
+        CollateralOracleSentinel(oracleSentinel).registerVault(address(newVault), address(newOracle));
 
         properties[newTokenId] = PropertyDetails({
             usage: usage,
@@ -155,6 +162,9 @@ contract PropertyNFT is ERC721URIStorage, AccessControl, AttestationAccessContro
 
 
 // TODO
-// - uniswap yield strategy
-// - FrodoRentVault for renting NFT to a user vault as proof of rent, owner pays monthly or yearly to vault, on default nft is transferred to owner,
-// - Owner can be FrodoEstateVault or Partner
+// - uniswap yield strategy -
+// - FrodoRentVault for renting NFT to a user vault as proof of rent, owner pays monthly or yearly to vault, on default nft is transferred to owner, - 
+// - Owner can be FrodoEstateVault or Partner - 
+// - update interfaces - 
+// - update attestation -
+// - write tests
