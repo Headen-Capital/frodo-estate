@@ -19,7 +19,7 @@ jobs:
           node-version: "16"
 
       - name: Install NPM packages
-        run: npm i
+        run: cd UI/app && npm i
 
       - name: Run tests
         run: npm run build
