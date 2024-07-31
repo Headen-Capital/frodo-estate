@@ -22,4 +22,4 @@ jobs:
         run: cd UI/app && npm i
 
       - name: Run tests
-        run: npm run build
+        run: cd UI/app && npm run build
