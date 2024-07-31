@@ -24,6 +24,7 @@ contract UniswapYieldStrategy is ReentrancyGuard, AccessControl {
     uint256 public tokenId;
     uint24 public constant TICK_RANGE = 100;
     bytes32 public constant USER_ROLE = keccak256("USER_ROLE");
+    bytes32 public constant USER_ROLE_ADMIN = keccak256("USER_ROLE_ADMIN");
 
     event Deposited(address indexed user, uint256 amountUsdt, uint256 amountWeth);
     event Withdrawn(address indexed user, uint256 amountUsdt, uint256 amountWeth);
@@ -36,7 +37,8 @@ contract UniswapYieldStrategy is ReentrancyGuard, AccessControl {
         address _nonfungiblePositionManager,
         address _swapRouter,
         uint24 _fee,
-        address _owner
+        address _owner,
+        address _proxy
     ) {
         usdtToken = IERC20(_usdtToken);
         wethToken = IERC20(_wethToken);
@@ -45,8 +47,11 @@ contract UniswapYieldStrategy is ReentrancyGuard, AccessControl {
         swapRouter = ISwapRouter(_swapRouter);
         fee = _fee;
 
+        _setRoleAdmin(USER_ROLE, USER_ROLE_ADMIN);
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(USER_ROLE, _owner);
+        _setupRole(USER_ROLE_ADMIN, _proxy);
+        _setupRole(USER_ROLE, msg.sender);
     }
 
     function deposit(uint256 amount) external onlyRole(USER_ROLE) nonReentrant {

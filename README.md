@@ -18,7 +18,7 @@ Creating a vault on Frodo Estate involves several key steps, including the deplo
 
 2. **Oracle Integration**: Oracles are integrated to provide real-time data feeds on property values, market trends, and other relevant metrics. This data is crucial for determining the value of vault tokens and managing investment strategies.
 
-3. **Vault Creation**: InvePartnerstors can then create vaults and Investors can purchase fractions of the NFTs representing the desired properties. This process involves interacting with smart contracts to allocate ownership percentages according to the number of tokens purchased.
+3. **Vault Creation**: Partners can then create vaults and Investors can purchase fractions of the NFTs representing the desired properties. This process involves interacting with smart contracts to allocate ownership percentages according to the number of tokens purchased.
 
 ## How to Buy Vault Tokens from Deployed Vaults
 

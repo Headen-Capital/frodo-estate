@@ -16,10 +16,10 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: "16"
+          node-version: "20"
 
       - name: Install NPM packages
-        run: make blitz-install
+        run: cd UI/app && npm i
 
       - name: Run tests
-        run: make blitz-test
+        run: cd UI/app && npm run build

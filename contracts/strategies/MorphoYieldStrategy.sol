@@ -20,17 +20,22 @@ contract MorphoYieldStrategy is ReentrancyGuard, AccessControl {
     uint256 private totalSharesDeposited;
 
     bytes32 public constant USER_ROLE = keccak256("USER_ROLE");
+    bytes32 public constant USER_ROLE_ADMIN = keccak256("USER_ROLE_ADMIN");
 
     event Deposited(address indexed user, uint256 amount, uint256 shares);
     event Withdrawn(address indexed user, uint256 amount, uint256 shares);
     event YieldHarvested(address indexed user, uint256 amount);
 
-    constructor(address _usdtToken, address _metaMorphoVault, address owner) {
+    constructor(address _usdtToken, address _metaMorphoVault, address owner, address proxy) {
         usdtToken = IERC20(_usdtToken);
         metaMorphoVault = IMorphoLendingPool(_metaMorphoVault);
 
+        _setRoleAdmin(USER_ROLE, USER_ROLE_ADMIN);
         _setupRole(DEFAULT_ADMIN_ROLE, owner);
         _setupRole(USER_ROLE, owner);
+        _setupRole(USER_ROLE, msg.sender);
+        _setupRole(USER_ROLE_ADMIN, proxy);
+       
     }
 
     function deposit(uint256 amount) external onlyRole(USER_ROLE) nonReentrant {

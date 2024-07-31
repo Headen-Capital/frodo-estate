@@ -22,19 +22,22 @@ contract AaveYieldStrategy is ReentrancyGuard, AccessControl {
     uint256 private totalDeposited;
 
     bytes32 public constant USER_ROLE = keccak256("USER_ROLE");
+    bytes32 public constant USER_ROLE_ADMIN = keccak256("USER_ROLE_ADMIN");
 
     event Deposited(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event YieldHarvested(address indexed user, uint256 amount);
 
-    constructor(address _pool, address _aToken, address owner) {
+    constructor(address _pool, address _aToken, address owner, address proxy) {
         pool = IPool(_pool);
         aToken = IAToken(_aToken);
         underlyingAsset = IERC20(aToken.UNDERLYING_ASSET_ADDRESS());
-
+        
+        _setRoleAdmin(USER_ROLE, USER_ROLE_ADMIN);
         _setupRole(DEFAULT_ADMIN_ROLE, owner);
         _setupRole(USER_ROLE, owner);
         _setupRole(USER_ROLE, msg.sender);
+        _setupRole(USER_ROLE_ADMIN, proxy);
     }
 
     function deposit(uint256 amount) external onlyRole(USER_ROLE) nonReentrant {
