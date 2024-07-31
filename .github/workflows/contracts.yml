@@ -20,7 +20,7 @@ jobs:
           version: nightly
 
       - name: Run tests
-        run: FOUNDRY_PROFILE=ci make forge-test
+        run: FOUNDRY_PROFILE=ci make contracts
 
       # Note: Uncomment when https://github.com/crytic/slither/issues/1007 is resolved
       # - name: Detect common vulnerabilities
