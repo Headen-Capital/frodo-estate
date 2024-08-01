@@ -5,3 +5,5 @@ out/
 # Gas Snapshot Artifact
 .gas-snapshot
 .env
+# Local Netlify folder
+.netlify
